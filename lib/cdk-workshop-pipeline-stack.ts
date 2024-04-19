@@ -1,19 +1,24 @@
-import { Duration, Stack, StackProps } from 'aws-cdk-lib';
-import * as sns from 'aws-cdk-lib/aws-sns';
-import * as subs from 'aws-cdk-lib/aws-sns-subscriptions';
-import * as sqs from 'aws-cdk-lib/aws-sqs';
-import { Construct } from 'constructs';
+import {Stack, StackProps} from 'aws-cdk-lib';
+import {Construct} from 'constructs';
+import {CodePipeline, CodePipelineSource, ShellStep} from "aws-cdk-lib/pipelines";
 
 export class CdkWorkshopPipelineStack extends Stack {
-  constructor(scope: Construct, id: string, props?: StackProps) {
-    super(scope, id, props);
+    constructor(scope: Construct, id: string, props?: StackProps) {
+        super(scope, id, props);
 
-    const queue = new sqs.Queue(this, 'CdkWorkshopPipelineQueue', {
-      visibilityTimeout: Duration.seconds(300)
-    });
-
-    const topic = new sns.Topic(this, 'CdkWorkshopPipelineTopic');
-
-    topic.addSubscription(new subs.SqsSubscription(queue));
-  }
+        const pipeline = new CodePipeline(this, 'TestPipeline', {
+            pipelineName: 'CdkWorkshopPipeline',
+            synth: new ShellStep('Synth', {
+                input: CodePipelineSource.gitHub('kkepa1/cdk-workshop', 'main'),
+                installCommands: [
+                    'npm install -g aws-cdk'
+                ],
+                commands: [
+                    'npm ci',
+                    'npm run build',
+                    'npx cdk synth'
+                ]
+            })
+        });
+    }
 }
